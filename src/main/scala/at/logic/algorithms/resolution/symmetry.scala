@@ -92,18 +92,19 @@ object fixSymmetry {
 
   // NOTE: What if the symmetric clause found is a tautology?
   private def handleInitialClause( cls: FClause, cs: Seq[FSequent] ) = {
+    // Commenting out the workaround.
     // If cls is in cs, do nothing
-    val cls_sequent = FSequent(
+    /*val cls_sequent = FSequent(
       cls.neg.map (f => f.asInstanceOf[FOLFormula]), 
       cls.pos.map (f => f.asInstanceOf[FOLFormula]))
 
     if (cs.contains(cls_sequent)) InitialClause(cls)
-    else {
+    else {*/
       cs.find( c => canDeriveBySymmetry( cls, c ) ) match {
         case None => InitialClause(cls)
-        case Some( c ) => deriveBySymmetry( cls, c )
+        case Some( c ) => println ("==> " + cls + " can be derived by symmetry from " + c); deriveBySymmetry( cls, c )
       }
-    }
+    //}
   }
 
   /**
