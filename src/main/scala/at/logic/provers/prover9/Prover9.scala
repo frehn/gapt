@@ -490,8 +490,8 @@ object fixProofBySearch {
 
   private def handleInitialClause(old_c: FSequent, new_cs: Seq[FSequent]) = 
     SearchDerivation(new_cs, old_c) match {
-      case Some(d) => d
-      case None => InitialClause(old_c.toFClause)
+      case Some(d) => d.asInstanceOf[RobinsonResolutionProof]
+      case None => InitialClause(old_c.antecedent.asInstanceOf[Seq[FOLFormula]], old_c.succedent.asInstanceOf[Seq[FOLFormula]])
     }
 
   private def rec( p: RobinsonResolutionProof)(implicit cs: Seq[FSequent] ) : RobinsonResolutionProof = {
