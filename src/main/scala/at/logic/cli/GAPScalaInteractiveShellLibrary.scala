@@ -72,7 +72,7 @@ import at.logic.provers.{Prover => abstractProver}
 import at.logic.provers.maxsat.{MaxSATSolver, MaxSAT}
 import at.logic.provers.maxsat.MaxSATSolver._
 import at.logic.provers.minisat.MiniSAT
-import at.logic.provers.prover9.{Prover9, fixProofBySearch}
+import at.logic.provers.prover9.{Prover9}
 import at.logic.provers.prover9.commands.Prover9InitCommand
 import at.logic.transformations.ceres.ACNF._
 import at.logic.transformations.ceres.ceres_omega
@@ -209,8 +209,7 @@ object loadProver9LKProof {
       val clause_set = CNFn(endsequent.toFormula).map(c => 
 	FSequent(c.neg.map(f => f.asInstanceOf[FOLFormula]), c.pos.map(f => f.asInstanceOf[FOLFormula])))
 
-      val res_proof1 = fixSymmetry (proof, clause_set)
-      val res_proof = fixProofBySearch(res_proof1, clause_set)
+      val res_proof = fixDerivation(proof, clause_set)
 
       Robinson2LK (res_proof, closure)
 

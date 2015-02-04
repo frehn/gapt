@@ -7,14 +7,25 @@ import at.logic.calculi.resolution.robinson._
 import at.logic.language.fol.{Equation => FOLEquation, FOLTerm, FOLFormula, FOLExpression, Substitution}
 import at.logic.calculi.resolution.{FClause, Clause}
 import at.logic.algorithms.lk.{applySubstitution => applySub, CleanStructuralRules, CloneLKProof}
+import at.logic.provers.atp.SearchDerivation
 
 /**
-  Sometimes, we have a resolution refutation of a set of clauses C
-  and want a refutation of a set C', such that C' is C modulo applications
-  of symmetry. This algorithm transforms a refutation of C to a refutation
-  of C'.
+*  Sometimes, we have a resolution refutation R of a set of clauses C
+*  and want a refutation R' of a set C' such that C implies C'.
+*
+*  This algorithm tries to obtain R' by trying to replace clauses c
+*  from C in R by derivations of C from C' in the following way:
+*
+*  - If c is in C', do nothing.
+*  - Otherwise, try to derive c from C' by paramodulation and symmetry (prover9 often needs
+*    this, and the check is usually fast),
+*  - Otherwise, try to derive c from C' by propositional resolution.
+*  
+*  If none of this works, we issue a warning and keep the clause c. If no warning is issued
+*  and the algorithm terminates, the result is the desired R'.
 **/
-object fixSymmetry {
+
+object fixDerivation extends at.logic.utils.logging.Logger {
 
   private def getSymmetryMap( to: FClause, from: FSequent ) = {
     var err = false
@@ -98,21 +109,19 @@ object fixSymmetry {
       cls.pos.map (f => f.asInstanceOf[FOLFormula]))
 
     if (cs.contains(cls_sequent)) InitialClause(cls)
-    else {
+    else
       cs.find( c => canDeriveBySymmetry( cls, c ) ) match {
-        case None => InitialClause(cls)
         case Some( c ) => deriveBySymmetry( cls, c )
+        case None => SearchDerivation(cs, cls_sequent, true) match {
+          case Some(d) => d.asInstanceOf[RobinsonResolutionProof]
+          case None => {
+            warn("Could not derive " + cls + " from " + cs + " by symmetry or propositional resolution")
+            InitialClause(cls)
+          }
+        }
       }
-    }
   }
 
-  /**
-   * Transform the resolution refutation p to a resolution refutation of cs by applying 
-   * symmetry to the initial clauses. If p has initial clauses which cannot be derived
-   * from cs by symmetry, returns a resolution refutation with these initial clauses unchanged.
-   *
-   * NOTE: this method is sensitive to the order of the clauses in cs
-   **/
   def apply( p: RobinsonResolutionProof, cs: Seq[FSequent] ) : RobinsonResolutionProof = {
     rec(p)(cs)
   }

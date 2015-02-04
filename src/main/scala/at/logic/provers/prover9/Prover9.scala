@@ -8,7 +8,7 @@ package at.logic.provers.prover9
 
 import at.logic.algorithms.lk.applyReplacement
 import at.logic.algorithms.resolution.InstantiateElimination
-import at.logic.algorithms.resolution.{RobinsonToLK, fixSymmetry, CNFn}
+import at.logic.algorithms.resolution.{RobinsonToLK, fixDerivation, CNFn}
 import at.logic.algorithms.rewriting.NameReplacement
 import at.logic.calculi.lk.base._
 import at.logic.calculi.lk.{CutRule, Axiom}
@@ -30,9 +30,6 @@ import scala.sys.process._
 import scala.collection.immutable.HashMap
 import scala.io.Source
 import scala.util.matching.Regex
-
-import at.logic.provers.atp.SearchDerivation
-import at.logic.calculi.resolution.robinson._
 
 class Prover9Exception(msg: String) extends Exception(msg)
 
@@ -185,10 +182,11 @@ object Prover9 extends at.logic.utils.logging.Logger {
 
   private def fixProof( p: RobinsonResolutionProof, cs: Seq[FSequent] ) =
   {
-    // try first to fix clauses which can be derived purely from symmetry axioms
-    val p2 = fixSymmetry(p, cs)
-    // next, try "brute force"
-    fixProofBySearch(p2, cs)
+    // try to fix the proof such that it has the correct initial clauses.
+    // this is necessary since our CNF transformation differs from 
+    // prover9's CNF transformation (which works modulo symmetry of =,
+    // and uses some additional propositional simplifications).
+    fixDerivation(p, cs)
   }
 
   private def runP9OnLADR( input_file: String, output_file: String, clauses: Option[Seq[FSequent]] = None ) : Option[RobinsonResolutionProof] = {
@@ -265,7 +263,7 @@ object Prover9 extends at.logic.utils.logging.Logger {
           val tp9proof = NameReplacement(p9proof._1, symbol_map)
 
           trace( "done doing name replacement" )
-          val ret = if (clauses != None) fixSymmetry(tp9proof, clauses.get) else tp9proof
+          val ret = if (clauses != None) fixDerivation(tp9proof, clauses.get) else tp9proof
           trace( "done fixing symmetry" )
           Some(ret)
         } catch {
@@ -475,50 +473,4 @@ class Prover9Prover extends Prover with at.logic.utils.logging.Logger {
 */
 
   override def isValid( seq : FSequent ) : Boolean = Prover9.isValid( seq )
-}
-
-/** This algorithm tries to find, given a resolution proof p of some clause c
-*   and a set of clauses cs, a resolution proof p' of c such that only clauses from
-*   cs are used as initial clauses in p'. It does this by trying to derive the
-*   initial clauses in p from the clauses in cs.
-*
-*   If such a derivation can not be found, the old initial clause is taken and
-*   the algorithm continues.
-*/
-object fixProofBySearch {
-  def apply( p: RobinsonResolutionProof, cs: Seq[FSequent]) = rec(p)(cs)
-
-  private def handleInitialClause(old_c: FSequent, new_cs: Seq[FSequent]) = 
-    SearchDerivation(new_cs, old_c) match {
-      case Some(d) => d.asInstanceOf[RobinsonResolutionProof]
-      case None => InitialClause(old_c.antecedent.asInstanceOf[Seq[FOLFormula]], old_c.succedent.asInstanceOf[Seq[FOLFormula]])
-    }
-
-  private def rec( p: RobinsonResolutionProof)(implicit cs: Seq[FSequent] ) : RobinsonResolutionProof = {
-    val res = p match {
-      case InitialClause(cls) => handleInitialClause( cls.toFClause.toFSequent, cs )
-     
-      case Factor(r, p, a, s) => {
-        a match {
-          case lit1 :: Nil => {
-            val pos = p.root.succedent.contains(lit1.head)
-            Factor(rec(p), lit1.head.formula, lit1.size, pos, s)
-          }
-          case lit1::lit2::Nil =>
-            Factor(rec(p), lit1.head.formula, lit1.size, lit2.head.formula, lit2.size, s)
-          case _ => throw new Exception("Factor rule for "+p.root+" does not have one or two primary formulas!")
-        }
-      }
-      case Variant(r, p, s) => Variant( rec( p  ), s )
-      case Resolution(r, p1, p2, a1, a2, s) => 
-	Resolution( rec( p1 ), rec( p2 ), a1.formula.asInstanceOf[FOLFormula], a2.formula.asInstanceOf[FOLFormula], s )
-      case Paramodulation(r, p1, p2, a1, a2, p, s) => 
-        Paramodulation( rec( p1 ), rec( p2 ), a1.formula.asInstanceOf[FOLFormula], a2.formula.asInstanceOf[FOLFormula], p.formula.asInstanceOf[FOLFormula], s, p2.root.succedent.contains(a2))
-      // this case is applicable only if the proof is an instance of RobinsonProofWithInstance
-      case Instance(_,p,s) => Instance(rec(p),s)
-    }
-    (res.root.positive ++ res.root.negative).foreach( fo => assert(fo.formula.isInstanceOf[FOLFormula]))
-    res
-  }
-
 }

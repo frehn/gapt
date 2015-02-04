@@ -31,7 +31,7 @@ case class SearchForEmptyClauseCommand[V <: Sequent]() extends ResultCommand[V] 
   }
 }
 
-case class InsertResolventCommand[V <: Sequent]() extends DataCommand[V] {
+case class InsertResolventCommand[V <: Sequent]() extends DataCommand[V] with at.logic.utils.logging.Logger {
   def apply(state: State, data: Any) = {
     (if (state.isDefinedAt("clauses")) state("clauses").asInstanceOf[PublishingBuffer[ResolutionProof[V]]]
     else {
@@ -39,6 +39,7 @@ case class InsertResolventCommand[V <: Sequent]() extends DataCommand[V] {
       state += new Tuple2("clauses", pb)
       pb
     }) += data.asInstanceOf[ResolutionProof[V]]
+    trace("inserted resolvent " + data.asInstanceOf[ResolutionProof[V]].root)
     List((state,data))
   }
 
@@ -82,10 +83,11 @@ case class SubsumedTargedSetFromClauseSetCommand[V <: Sequent]() extends ResultC
 }
 
 //checks whether the resolvent is subsumed
-case class SubsumedTargedReachedCommand[V <: Sequent]() extends ResultCommand[V] {
+case class SubsumedTargedReachedCommand[V <: Sequent]() extends ResultCommand[V] with at.logic.utils.logging.Logger {
   def apply(state: State, data: Any) = {
     val target = state("targetClause").asInstanceOf[FSequent]
     val d = data.asInstanceOf[ResolutionProof[V]]
+    trace("checking whether " + d.root.toFSequent + " subsumes " + target)
     if (firstSubsumesSecond(d.root.toFSequent,target)) Some(d)
     else None
   }
