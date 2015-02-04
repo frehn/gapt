@@ -113,7 +113,20 @@ object fixDerivation extends at.logic.utils.logging.Logger {
       cs.find( c => canDeriveBySymmetry( cls, c ) ) match {
         case Some( c ) => deriveBySymmetry( cls, c )
         case None => SearchDerivation(cs, cls_sequent, true) match {
-          case Some(d) => d.asInstanceOf[RobinsonResolutionProof]
+          case Some(d) => {
+            val ret = d.asInstanceOf[RobinsonResolutionProof]
+            if (ret.root.toFClause != cls)
+            {
+              // TODO: add appropriate rules to derive cls --- SearchDerivation only yields
+              // a derivation of a clause subsuming cls, not cls itself!
+              // Until this is fixed, we just return the original clause, not the derivation
+              // constructed above.
+
+              // trace("WRONG ENDCLAUSE: " + ret.root  + " instead of " + cls)
+              InitialClause(cls) 
+            } else
+              ret
+          }
           case None => {
             warn("Could not derive " + cls + " from " + cs + " by symmetry or propositional resolution")
             InitialClause(cls)
