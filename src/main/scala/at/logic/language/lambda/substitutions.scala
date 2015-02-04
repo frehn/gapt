@@ -76,12 +76,6 @@ class Substitution(val map: Map[Var, LambdaExpression]) {
 
   override def toString() = map.map(x => x._1 +" -> "+x._2).mkString("Substitution(",",",")")
 
-  /** 
-  * Splits an idempotent substitution [x_1 \ t_1, ..., x_n \ t_n] into
-  * substitutions [x_1 \ t_1], ..., [x_n \ t_n].
-  **/
-  def split = map.keys.map( x => Substitution(x, map(x)) )
-
 }
 
 object Substitution {
