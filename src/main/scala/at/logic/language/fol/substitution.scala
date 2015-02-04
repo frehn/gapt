@@ -22,8 +22,6 @@ class Substitution(val folmap: Map[FOLVar, FOLExpression]) extends SubstitutionH
   }
   
   def compose(sub: Substitution): Substitution = Substitution(folmap ++ sub.folmap.map(x => (x._1, apply(x._2))))
-
-  override def split : Iterable[Substitution] = map.keys.map( x => Substitution(x.asInstanceOf[FOLVar], map(x).asInstanceOf[FOLTerm]) )
 }
 object Substitution {
   def apply(subs: List[(FOLVar, FOLExpression)]): Substitution = new Substitution(Map() ++ subs)
