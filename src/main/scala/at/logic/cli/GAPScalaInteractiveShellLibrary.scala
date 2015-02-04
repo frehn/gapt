@@ -194,7 +194,7 @@ object loadProver9Proof {
 
 object loadProver9LKProof {
 
-  def apply(filename: String, forceSkolemization: Boolean = false): LKProof = {
+  def apply(filename: String, forceSkolemization: Boolean = false): (LKProof, RobinsonResolutionProof, RobinsonResolutionProof) = {
 
     val (proof, endsequent, clauses) = Prover9.parse_prover9(filename)
     //val sendsequent = skolemize(endsequent)
@@ -209,9 +209,14 @@ object loadProver9LKProof {
       val clause_set = CNFn(endsequent.toFormula).map(c => 
 	FSequent(c.neg.map(f => f.asInstanceOf[FOLFormula]), c.pos.map(f => f.asInstanceOf[FOLFormula])))
 
+      println ("----- Clause set -----")
+      clause_set.foreach (c => println (c))
+      println ("----------------------")
+
       val res_proof = fixDerivation(proof, clause_set)
 
-      Robinson2LK (res_proof, closure)
+      // Returning proof before fixSymmetry and res_proof after fixSymmetry
+      (Robinson2LK (res_proof, closure), proof, res_proof)
 
     } else {
 
@@ -234,7 +239,7 @@ object loadProver9LKProof {
         case FOLNeg(x) => x
       }).toList)
 
-      Robinson2LK (proof, cendsequent2)
+      (Robinson2LK (proof, cendsequent2), proof, proof)
 
     }
   }

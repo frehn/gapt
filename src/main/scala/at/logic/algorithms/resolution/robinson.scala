@@ -32,7 +32,9 @@ object RobinsonToLK {
   // if the proof can be obtained from the CNF(-s) then we compute an LKProof of |- s
   def apply(resproof: RobinsonResolutionProof, s: FSequent): LKProof = {
     val memotable = new PCNFMemoTable(s)
-    WeakeningContractionMacroRule(recConvert(resproof, s, scala.collection.mutable.Map[FClause,LKProof](), memotable.getPCNF),s, strict = true)
+    recConvert(resproof, s, scala.collection.mutable.Map[FClause,LKProof](), memotable.getPCNF)
+    // Do not apply the macro rule that raises the exception.
+    //WeakeningContractionMacroRule(recConvert(resproof, s, scala.collection.mutable.Map[FClause,LKProof](), memotable.getPCNF),s, strict = true)
   }
 
   // if the proof can be obtained from the CNF(-s) then we compute an LKProof of |- s

@@ -103,8 +103,7 @@ object fixDerivation extends at.logic.utils.logging.Logger {
 
   // NOTE: What if the symmetric clause found is a tautology?
   private def handleInitialClause( cls: FClause, cs: Seq[FSequent] ) = {
-    // If cls is in cs, do nothing
-    val cls_sequent = FSequent(
+      val cls_sequent = FSequent(
       cls.neg.map (f => f.asInstanceOf[FOLFormula]), 
       cls.pos.map (f => f.asInstanceOf[FOLFormula]))
 
