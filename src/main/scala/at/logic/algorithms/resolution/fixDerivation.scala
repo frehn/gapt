@@ -25,6 +25,9 @@ import at.logic.algorithms.subsumption.StillmanSubsumptionAlgorithmFOL
 *  
 *  If none of this works, we issue a warning and keep the clause c. If no warning is issued
 *  and the algorithm terminates, the result is the desired R'.
+* 
+*  In general, if R is a derivation of a clause c, the result R' of fixDerivation(R)
+*  is a derivation of a subclause of c.
 **/
 
 object fixDerivation extends at.logic.utils.logging.Logger {
@@ -184,6 +187,9 @@ object fixDerivation extends at.logic.utils.logging.Logger {
     rec(p)(cs)
   }
 
+  // The inductive invariant is that if we had previously a derivation of a clause c,
+  // we will now have a derivation of a subclause of c. Hence we have to drop some parts
+  // of the derivation.
   private def rec( p: RobinsonResolutionProof)(implicit cs: Seq[FSequent] ) : RobinsonResolutionProof = {
     var fac = false
     val res = p match {
@@ -193,19 +199,57 @@ object fixDerivation extends at.logic.utils.logging.Logger {
         fac = true 
         a match {
           case lit1 :: Nil => {
+            val rp = rec(p)
             val pos = p.root.succedent.contains(lit1.head)
-            Factor(rec(p), lit1.head.formula, lit1.size, pos, s)
+            val form = lit1.head.formula
+            val cnt_ = if (pos) rp.root.succedent.filter( _.formula == form ).size - p.root.succedent.filter( _.formula == form ).size
+                       else rp.root.antecedent.filter( _.formula == form ).size - p.root.antecedent.filter( _.formula == form ).size
+            val cnt = if ( cnt_ > 0 ) cnt_ else 0
+            if (cnt == 0)
+              rp
+            else
+              Factor(rp, form, cnt, pos, s)
           }
-          case lit1::lit2::Nil =>
-            Factor(rec(p), lit1.head.formula, lit1.size, lit2.head.formula, lit2.size, s)
+          case lit1::lit2::Nil => {
+            val rp = rec(p)
+            val form_left = lit1.head.formula
+            val form_right = lit2.head.formula
+            val cnt_left_ = rp.root.antecedent.filter( _.formula == form_left ).size - p.root.antecedent.filter( _.formula == form_left ).size
+            val cnt_right_ =  rp.root.succedent.filter( _.formula == form_right ).size - p.root.succedent.filter( _.formula == form_right ).size
+            val cnt_left = if ( cnt_left_ > 0 ) cnt_left_ else 0
+            val cnt_right = if ( cnt_right_ > 0 ) cnt_right_ else 0
+            if (cnt_left == 0 && cnt_right == 0)
+              rp
+            else
+              Factor(rp, form_left, cnt_left, form_right, cnt_right, s)
+          }
           case _ => throw new Exception("Factor rule for "+p.root+" does not have one or two primary formulas!")
         }
       }
       case Variant(r, p, s) => Variant( rec( p  ), s )
-      case Resolution(r, p1, p2, a1, a2, s) => 
-	Resolution( rec( p1 ), rec( p2 ), a1.formula.asInstanceOf[FOLFormula], a2.formula.asInstanceOf[FOLFormula], s )
-      case Paramodulation(r, p1, p2, a1, a2, p, s) => 
-        Paramodulation( rec( p1 ), rec( p2 ), a1.formula.asInstanceOf[FOLFormula], a2.formula.asInstanceOf[FOLFormula], p.formula.asInstanceOf[FOLFormula], s, p2.root.succedent.contains(a2))
+      case Resolution(r, p1, p2, a1, a2, s) => {
+        val rp1 = rec( p1 )
+        val rp2 = rec( p2 )
+        if (!rp1.root.succedent.exists(_.formula == a1.formula))
+          rp1
+        else if (!rp2.root.antecedent.exists(_.formula == a2.formula))
+          rp2
+        else
+          Resolution( rp1, rp2, a1.formula.asInstanceOf[FOLFormula], a2.formula.asInstanceOf[FOLFormula], s )
+      }
+      case Paramodulation(r, p1, p2, a1, a2, p, s) => {
+        val rp1 = rec( p1 )
+        val rp2 = rec( p2 )
+        val right = p2.root.succedent.contains(a2)
+        if (!rp1.root.succedent.exists(_.formula == a1.formula))
+          rp1
+        else if (right && !rp2.root.succedent.exists(_.formula == a2.formula))
+          rp2
+        else if (!right && !rp2.root.antecedent.exists(_.formula == a2.formula))
+          rp2
+        else
+          Paramodulation( rp1, rp2, a1.formula.asInstanceOf[FOLFormula], a2.formula.asInstanceOf[FOLFormula], p.formula.asInstanceOf[FOLFormula], s, right)
+      }
       // this case is applicable only if the proof is an instance of RobinsonProofWithInstance
       case Instance(_,p,s) => Instance(rec(p),s)
     }
