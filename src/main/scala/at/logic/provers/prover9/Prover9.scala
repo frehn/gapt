@@ -233,7 +233,8 @@ object Prover9 extends at.logic.utils.logging.Logger {
             trace("Checking cs formula "+f)
             require(f.isInstanceOf[FOLFormula], "Formula "+f+" in "+fs+" is not a FOL formula!")
           }
-          val ret = if (clauses != None) fixProof(tp9proof, clauses.get) else tp9proof
+          //val ret = if (clauses != None) fixProof(tp9proof, clauses.get) else tp9proof
+          val ret = tp9proof
           //println("applied symbol map: "+symbol_map+" to get endsequent "+tp9proof.root)
 
           Some(ret)
