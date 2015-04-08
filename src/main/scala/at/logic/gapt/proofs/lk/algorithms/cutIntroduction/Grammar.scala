@@ -50,6 +50,7 @@ class Grammar( val u: List[FOLTerm], val slist: List[( List[FOLVar], Set[List[FO
 // where the U_i are sets of lists of terms corresponding to the instances of the x_i,
 // and the S_i are sets of lists of terms.
 class MultiGrammar( val us: Map[FOLFormula, List[List[FOLTerm]]], val ss: List[( List[FOLVar], List[List[FOLTerm]] )] ) {
+  require( ss.forall{ case (vars, termlistlist) => termlistlist.forall{ case termlist => vars.length == termlist.length }})
 
   /** Returns the size of the grammar, i.e. |u| + |s| */
   def size = u_size + s_size
@@ -74,6 +75,8 @@ class MultiGrammar( val us: Map[FOLFormula, List[List[FOLTerm]]], val ss: List[(
     }
     ( formula, terms.distinct )
   } ).toMap
+
+  override def toString = "us: " + us + "\nss: " + ss
 }
 
 object simpleToMultiGrammar {

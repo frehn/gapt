@@ -572,6 +572,7 @@ object CutIntroduction extends Logger {
    */
   def computeCanonicalSolutions( g: MultiGrammar ): List[FOLFormula] = {
 
+    trace("Grammar in computeCanonicalSolutions: " + g)
     //val termset = g.terms
     val variables = g.ss.head._1
 
@@ -601,7 +602,7 @@ object CutIntroduction extends Logger {
         val ci = cut_formulas.head
         val forms = termset.foldLeft( List[FOLFormula]() ) {
           case ( acc, terms ) =>
-            assert( variables.length == terms.length, "Number of eigenvariables different from number of terms in computation of canonical solution" )
+            assert( variables.length == terms.length, "Number of eigenvariables (" + variables.length + ") different from number of terms (" + terms.length + ") in computation of canonical solution" )
             val subst = FOLSubstitution( variables.zip( terms ) )
             subst( ci ) :: acc
         }
